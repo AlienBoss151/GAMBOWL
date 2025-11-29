@@ -6,12 +6,21 @@ const fs = require('fs')
 
 const app = express();
 app.use(express.static('static'));
+
+// Serve the public/ folder too so the client files we added (public/js/voice.owl.js, etc.) are reachable.
+// Option: alternatively move the files into static/js instead of adding this line.
+app.use(express.static('public'));
+
 app.use(cookieParser())
 const httpServer = createServer(app);
 app.use(express.urlencoded({ extended: false }))
 app.use(express.json())
 const io = new Server(httpServer, { /* options */ });
 
+// Attach the voice signaling helper we added (server/voice-signaling.owl.js).
+// If you use a different namespace for your game sockets, change namespace: '/game' accordingly.
+const attachVoiceSignaling = require('./server/voice-signaling.owl.js');
+attachVoiceSignaling(io, { namespace: '/' });
 
 let users = []
 let cards = []
@@ -138,11 +147,10 @@ io.on('connection', (socket, cb)=>{
         hasStarted =  hasStarted.filter(function(el){return el != roomId})
         hasFinished = hasFinished.filter((el)=> {return el.room != roomId})
         const roomIdLong = Date.now();
-        const newRoomId = roomIdLong.toString().split("").splice(6, 5).join("");
+        const newRoomId = roomIdLong.toString().split(""").splice(6, 5).join("");
         io.to(roomId).emit('restart', newRoomId)
     })
 })
-
 
 
 app.get('/', (req, res) => {
@@ -172,7 +180,6 @@ app.post('/joinroom', (req, res)=>{
     res.cookie('userName', body.name)
     res.redirect('/room')
 })
-
 
 
 app.get('/room', (req, res)=>{
